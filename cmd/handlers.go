@@ -45,7 +45,7 @@ func (app *Application) SendGetRequest(requestURL string) (resBody []byte, err e
 
 }
 
-func SMS() (SMSData []models.SMSData, err error) {
+func (app *Application) SMS() (SMSData []models.SMSData, err error) {
 	data, err := pkg.ReadCSV("./data/sms.data", 4)
 	if err != nil {
 		return nil, err
@@ -105,4 +105,55 @@ func (app *Application) MMS() (MMSData []models.MMSData, err error) {
 	}
 	fmt.Println(MMSData)
 	return MMSData, nil
+}
+
+func (app *Application) VoiceCall() (VoiceCallData []models.VoiceCallData, err error) {
+	data, err := pkg.ReadCSV("./data/voice.data", 8)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(data)
+	var dataVoice [][]string
+	for _, records := range data {
+		if !CheckCountry(records[0]) {
+			continue
+		}
+		if !(records[3] == "TransparentCalls" || records[3] == "E-Voice" || records[3] == "JustPhone") {
+			continue
+		}
+		dataVoice = append(dataVoice, records)
+	}
+
+	for _, records := range dataVoice {
+		ConnStab, err := strconv.ParseFloat(records[4], 32)
+		if err != nil {
+			return nil, err
+		}
+		TimeToFirstByte, err := strconv.Atoi(records[5])
+		if err != nil {
+			return nil, err
+		}
+		VoicePur, err := strconv.Atoi(records[6])
+		if err != nil {
+			return nil, err
+		}
+		MedianTime, err := strconv.Atoi(records[7])
+		if err != nil {
+			return nil, err
+		}
+		var voice = &models.VoiceCallData{
+			Country:             records[0],
+			Bandwidth:           records[1],
+			ResponseTime:        records[2],
+			Provider:            records[3],
+			ConnectionStability: float32(ConnStab),
+			TTFB:                TimeToFirstByte,
+			VoicePurity:         VoicePur,
+			MedianOfCallsTime:   MedianTime,
+		}
+
+		VoiceCallData = append(VoiceCallData, *voice)
+	}
+	fmt.Println(VoiceCallData)
+	return VoiceCallData, nil
 }
