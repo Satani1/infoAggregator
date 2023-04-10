@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
 )
@@ -14,6 +15,14 @@ func (app *Application) Routes() *mux.Router {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
+	})
+
+	rMux.HandleFunc("/mms", func(w http.ResponseWriter, r *http.Request) {
+		out, err := app.MMS()
+		if err != nil {
+			app.errorLog.Fatalln(err)
+		}
+		fmt.Println(out)
 	})
 
 	return rMux

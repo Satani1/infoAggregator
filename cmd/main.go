@@ -3,10 +3,7 @@ package main
 import (
 	"context"
 	"errors"
-	"finalWork/pkg"
-	"finalWork/pkg/models"
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -44,7 +41,6 @@ func main() {
 		ErrorLog: App.errorLog,
 		Handler:  App.Routes(),
 	}
-	SMS()
 	App.infoLog.Printf("Launching server on %s", App.Addr)
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -64,40 +60,4 @@ func main() {
 	}
 	App.infoLog.Fatalln("Im shutdown...")
 
-}
-
-var Alpha2Countries = map[string]string{
-	"RU": "Russia",
-	"AF": "Afghanistan",
-}
-
-func SMS() (SMSData []models.SMSData, err error) {
-	data, err := pkg.ReadCSV("./data/sms.data", 4)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println(data)
-	var dataSMS [][]string
-	for _, records := range data {
-		if _, found := Alpha2Countries[records[0]]; !found {
-			continue
-		}
-		if !(records[3] == "Topolo" || records[3] == "Rond" || records[3] == "Kildy") {
-			continue
-		}
-		dataSMS = append(dataSMS, records)
-	}
-
-	for _, records := range dataSMS {
-		var sms = &models.SMSData{
-			Country:      records[0],
-			Bandwidth:    records[1],
-			ResponseTime: records[2],
-			Provider:     records[3],
-		}
-
-		SMSData = append(SMSData, *sms)
-	}
-	fmt.Println(SMSData)
-	return SMSData, nil
 }
