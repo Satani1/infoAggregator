@@ -157,3 +157,45 @@ func (app *Application) VoiceCall() (VoiceCallData []models.VoiceCallData, err e
 	fmt.Println(VoiceCallData)
 	return VoiceCallData, nil
 }
+
+func (app *Application) Email() (EmailData []models.EmailData, err error) {
+	data, err := pkg.ReadCSV("./data/email.data", 3)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(data)
+	var dataEmail [][]string
+	providers := []string{"Gmail", "Yahoo", "Hotmail", "MSN", "Orange", "Comcast", "AOL", "Live", "RediffMail", "GMX", "Protonmail",
+		"Yandex", "Mail.ru"}
+	for _, records := range data {
+		var found bool
+		for _, provider := range providers {
+			found = false
+			if records[1] == provider {
+				found = true
+			}
+		}
+		if found {
+			continue
+		}
+		if !CheckCountry(records[0]) {
+			continue
+		}
+		dataEmail = append(dataEmail, records)
+	}
+	for _, records := range dataEmail {
+		dTime, err := strconv.Atoi(records[2])
+		if err != nil {
+			return nil, err
+		}
+		var email = &models.EmailData{
+			Country:      records[0],
+			Provider:     records[1],
+			DeliveryTime: dTime,
+		}
+
+		EmailData = append(EmailData, *email)
+	}
+	fmt.Println(EmailData)
+	return EmailData, nil
+}

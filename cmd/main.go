@@ -20,7 +20,7 @@ type Application struct {
 
 func NewApplication() *Application {
 	//addr config from terminal
-	addr := flag.String("addr", "localhost:8282", "Server Address")
+	addr := flag.String("addr", "localhost:8283", "Server Address")
 	flag.Parse()
 	//logs
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
@@ -47,6 +47,12 @@ func main() {
 		App.errorLog.Fatalln(err)
 	}
 	fmt.Println(res)
+
+	res1, err := App.Email()
+	if err != nil {
+		App.errorLog.Fatalln(err)
+	}
+	fmt.Println(res1)
 	App.infoLog.Printf("Launching server on %s", App.Addr)
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
