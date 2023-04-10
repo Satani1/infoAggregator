@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -41,6 +42,11 @@ func main() {
 		ErrorLog: App.errorLog,
 		Handler:  App.Routes(),
 	}
+	res, err := App.VoiceCall()
+	if err != nil {
+		App.errorLog.Fatalln(err)
+	}
+	fmt.Println(res)
 	App.infoLog.Printf("Launching server on %s", App.Addr)
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
