@@ -80,15 +80,15 @@ func SMS() (SMSData []models.SMSData, err error) {
 	var dataSMS [][]string
 	for _, records := range data {
 		if _, found := Alpha2Countries[records[0]]; !found {
-			break
+			continue
 		}
 		if !(records[3] == "Topolo" || records[3] == "Rond" || records[3] == "Kildy") {
-			break
+			continue
 		}
 		dataSMS = append(dataSMS, records)
 	}
 
-	for _, records := range data {
+	for _, records := range dataSMS {
 		var sms = &models.SMSData{
 			Country:      records[0],
 			Bandwidth:    records[1],
@@ -98,5 +98,6 @@ func SMS() (SMSData []models.SMSData, err error) {
 
 		SMSData = append(SMSData, *sms)
 	}
+	fmt.Println(SMSData)
 	return SMSData, nil
 }
