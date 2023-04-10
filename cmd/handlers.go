@@ -6,14 +6,20 @@ import (
 	"finalWork/pkg"
 	"finalWork/pkg/models"
 	"fmt"
+	"github.com/pariz/gountries"
 	"io"
 	"net/http"
 	"strconv"
 )
 
-var Alpha2Countries = map[string]string{
-	"RU": "Russia",
-	"AF": "Afghanistan",
+func CheckCountry(countryCode string) bool {
+	query := gountries.New()
+
+	_, err := query.FindCountryByAlpha(countryCode)
+	if err == nil {
+		return true
+	}
+	return false
 }
 
 func (app *Application) SendGetRequest(requestURL string) (resBody []byte, err error) {
@@ -47,7 +53,7 @@ func SMS() (SMSData []models.SMSData, err error) {
 	fmt.Println(data)
 	var dataSMS [][]string
 	for _, records := range data {
-		if _, found := Alpha2Countries[records[0]]; !found {
+		if !CheckCountry(records[0]) {
 			continue
 		}
 		if !(records[3] == "Topolo" || records[3] == "Rond" || records[3] == "Kildy") {
@@ -88,7 +94,7 @@ func (app *Application) MMS() (MMSData []models.MMSData, err error) {
 	fmt.Println(MMSDataSlice)
 
 	for _, element := range MMSDataSlice {
-		if element.Country != "RU" {
+		if !CheckCountry(element.Country) {
 			continue
 		}
 		if !(element.Provider == "Topolo" || element.Provider == "Rond" || element.Provider == "Kildy") {
