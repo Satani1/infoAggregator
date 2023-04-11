@@ -41,7 +41,7 @@ func (app *Application) Routes() *mux.Router {
 		fmt.Println(out)
 	})
 
-	rMux.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {})
+	rMux.HandleFunc("/api", nil)
 
 	return rMux
 }

@@ -12,6 +12,7 @@ import (
 	"math"
 	"net/http"
 	"reflect"
+	"sort"
 	"strconv"
 )
 
@@ -23,6 +24,16 @@ func CheckCountry(countryCode string) bool {
 		return true
 	}
 	return false
+}
+
+func CountryName(countryCode string) (string, error) {
+	query := gountries.New()
+
+	name, err := query.FindCountryByAlpha(countryCode)
+	if err != nil {
+		return "", err
+	}
+	return name.Name.Common, nil
 }
 
 func (app *Application) SendGetRequest(requestURL string) (resBody []byte, err error) {
@@ -53,7 +64,6 @@ func (app *Application) SMS() (SMSData []models.SMSData, err error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(data)
 	var dataSMS [][]string
 	for _, records := range data {
 		if !CheckCountry(records[0]) {
@@ -75,7 +85,6 @@ func (app *Application) SMS() (SMSData []models.SMSData, err error) {
 
 		SMSData = append(SMSData, *sms)
 	}
-	fmt.Println(SMSData)
 	return SMSData, nil
 }
 
@@ -256,4 +265,144 @@ func (app *Application) Incident() (IncidentData []models.IncidentData, err erro
 	}
 	fmt.Println(IncidentData)
 	return IncidentData, nil
+}
+
+func (app *Application) GetResultSMS() (SMSDataResult [][]models.SMSData, err error) {
+	SMSData, err := app.SMS()
+	if err != nil {
+		return nil, err
+	}
+
+	for i := 0; i < len(SMSData); i++ {
+		countryName, err := CountryName(SMSData[i].Country)
+		if err != nil {
+			return nil, err
+		}
+		SMSData[i].Country = countryName
+
+	}
+
+	SMSDataByCountry := SMSData
+	SMSDataByProvider := SMSData
+
+	sort.SliceStable(SMSDataByCountry, func(i, j int) bool {
+		return SMSDataByCountry[i].Country < SMSDataByCountry[j].Country
+	})
+
+	sort.SliceStable(SMSDataByProvider, func(i, j int) bool {
+		return SMSDataByProvider[i].Provider < SMSDataByProvider[j].Provider
+	})
+
+	SMSDataResult = [][]models.SMSData{SMSDataByCountry, SMSDataByProvider}
+
+	return SMSDataResult, nil
+
+}
+
+func (app *Application) GetResultMMS() (MMSDataResult [][]models.MMSData, err error) {
+	MMSData, err := app.MMS()
+	if err != nil {
+		return nil, err
+	}
+
+	for i := 0; i < len(MMSData); i++ {
+		countryName, err := CountryName(MMSData[i].Country)
+		if err != nil {
+			return nil, err
+		}
+		MMSData[i].Country = countryName
+
+	}
+
+	SMSDataByCountry := MMSData
+	SMSDataByProvider := MMSData
+
+	sort.SliceStable(SMSDataByCountry, func(i, j int) bool {
+		return SMSDataByCountry[i].Country < SMSDataByCountry[j].Country
+	})
+
+	sort.SliceStable(SMSDataByProvider, func(i, j int) bool {
+		return SMSDataByProvider[i].Provider < SMSDataByProvider[j].Provider
+	})
+
+	MMSDataResult = [][]models.MMSData{SMSDataByCountry, SMSDataByProvider}
+
+	return MMSDataResult, nil
+}
+
+// think about sort and add data to result map
+func (app *Application) GetResultEmail() (EmailResult map[string][][]models.EmailData, err error) {
+	EmailData, err := app.Email()
+	if err != nil {
+		return nil, err
+	}
+	EmailDataHigh := EmailData
+	EmailDataLow := EmailData
+	sort.SliceStable(EmailDataHigh, func(i, j int) bool {
+		return EmailDataHigh[i].DeliveryTime < EmailDataHigh[j].DeliveryTime
+	})
+	sort.SliceStable(EmailDataLow, func(i, j int) bool {
+		return EmailDataLow[i].DeliveryTime < EmailDataLow[j].DeliveryTime
+	})
+
+	for i := 0; i < 3; i++ {
+		countryName, err := CountryName(EmailDataHigh[i].Country)
+		if err != nil {
+			return nil, err
+		}
+		EmailResult[countryName] = append(EmailResult[countryName], EmailDataHigh[i])
+	}
+	for i := 0; i < 3; i++ {
+		countryName, err := CountryName(EmailDataLow[i].Country)
+		if err != nil {
+			return nil, err
+		}
+		EmailResult[countryName] = append(EmailResult[countryName], EmailDataLow[i])
+	}
+
+	return EmailResult, nil
+}
+
+func (app *Application) GetResultIncident() (IncidentResult []models.IncidentData, err error) {
+	IncidentData, err := app.Incident()
+	if err != nil {
+		return nil, err
+	}
+	sort.SliceStable(IncidentData, func(i, j int) bool {
+		return IncidentData[i].Status < IncidentData[j].Status
+	})
+	return IncidentResult, nil
+}
+
+func (app *Application) GetResultData() (Results models.ResultSetT) {
+	SMS, err := app.GetResultSMS()
+	if err != nil {
+		app.errorLog.Fatalln(err)
+	}
+	MMS, err := app.GetResultMMS()
+	if err != nil {
+		app.errorLog.Fatalln(err)
+	}
+	VoiceCall, err := app.VoiceCall()
+	if err != nil {
+		app.errorLog.Fatalln(err)
+	}
+	Incident, err := app.GetResultIncident()
+	if err != nil {
+		app.errorLog.Fatalln(err)
+	}
+	Email, err := app.GetResultEmail()
+	if err != nil {
+		app.errorLog.Fatalln(err)
+	}
+	if err == nil {
+		Results = models.ResultSetT{
+			SMS:       SMS,
+			MMS:       MMS,
+			VoiceCall: VoiceCall,
+			Incident:  Incident,
+			Email:     Email,
+		}
+	}
+	return Results
 }

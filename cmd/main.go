@@ -42,22 +42,13 @@ func main() {
 		ErrorLog: App.errorLog,
 		Handler:  App.Routes(),
 	}
-	res, err := App.VoiceCall()
-	if err != nil {
-		App.errorLog.Fatalln(err)
-	}
-	fmt.Println(res)
+	fmt.Println(App.GetResultSMS())
 
-	res1, err := App.Email()
-	if err != nil {
-		App.errorLog.Fatalln(err)
-	}
-	fmt.Println(res1)
-	r, e := App.Billing()
-	if e != nil {
-		App.errorLog.Fatalln(e)
-	}
-	fmt.Println(r)
+	//r, e := App.Billing()
+	//if e != nil {
+	//	App.errorLog.Fatalln(e)
+	//}
+	//fmt.Println(r)
 	App.infoLog.Printf("Launching server on %s", App.Addr)
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
