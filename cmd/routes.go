@@ -25,5 +25,23 @@ func (app *Application) Routes() *mux.Router {
 		fmt.Println(out)
 	})
 
+	rMux.HandleFunc("/support", func(w http.ResponseWriter, r *http.Request) {
+		out, err := app.Support()
+		if err != nil {
+			app.errorLog.Fatalln(err)
+		}
+		fmt.Println(out)
+	})
+
+	rMux.HandleFunc("/accendent", func(w http.ResponseWriter, r *http.Request) {
+		out, err := app.Incident()
+		if err != nil {
+			app.errorLog.Fatalln(err)
+		}
+		fmt.Println(out)
+	})
+
+	rMux.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {})
+
 	return rMux
 }

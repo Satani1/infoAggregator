@@ -30,3 +30,22 @@ type EmailData struct {
 	Provider     string
 	DeliveryTime int
 }
+
+type BillingData struct {
+	CreateCustomer bool
+	Purchase       bool
+	Payout         bool
+	Recurring      bool
+	FraudControl   bool
+	CheckoutPage   bool
+}
+
+type SupportData struct {
+	Topic         string `json:"topic"`
+	ActiveTickets int    `json:"active_tickets"`
+}
+
+type IncidentData struct {
+	Topic  string `json:"topic"`
+	Status string `json:"status"` //active or closed
+}

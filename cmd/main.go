@@ -53,6 +53,11 @@ func main() {
 		App.errorLog.Fatalln(err)
 	}
 	fmt.Println(res1)
+	r, e := App.Billing()
+	if e != nil {
+		App.errorLog.Fatalln(e)
+	}
+	fmt.Println(r)
 	App.infoLog.Printf("Launching server on %s", App.Addr)
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {

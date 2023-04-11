@@ -8,7 +8,10 @@ import (
 	"fmt"
 	"github.com/pariz/gountries"
 	"io"
+	"io/ioutil"
+	"math"
 	"net/http"
+	"reflect"
 	"strconv"
 )
 
@@ -198,4 +201,59 @@ func (app *Application) Email() (EmailData []models.EmailData, err error) {
 	}
 	fmt.Println(EmailData)
 	return EmailData, nil
+}
+
+// need a bit mask
+func (app *Application) Billing() (BillingData *models.BillingData, err error) {
+	nums, err := ioutil.ReadFile("./data/billing.data")
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("%v, %v", nums, reflect.TypeOf(nums))
+	var Bits []int
+	for i := 5; i >= 0; i-- {
+		byteNumber, _ := strconv.Atoi(string(nums[i]))
+		Bits = append(Bits, byteNumber)
+	}
+	fmt.Println(Bits)
+	var sum uint8
+	for index, num := range Bits {
+		if num == 1 {
+			sum += uint8(math.Pow(float64(2), float64(index)))
+		}
+	}
+	fmt.Println(sum)
+	return BillingData, nil
+}
+
+func (app *Application) Support() (SupportData []models.SupportData, err error) {
+	requestURL := "http://127.0.0.1:8383/support"
+	resBody, err := app.SendGetRequest(requestURL)
+	if err != nil {
+		return nil, err
+	} else if errors.Is(err, errors.New("status code is 500")) {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(resBody, &SupportData); err != nil {
+		return SupportData, err
+	}
+	fmt.Println(SupportData)
+	return SupportData, nil
+}
+
+func (app *Application) Incident() (IncidentData []models.IncidentData, err error) {
+	requestURL := "http://localhost:8383/accendent"
+	resBody, err := app.SendGetRequest(requestURL)
+	if err != nil {
+		return nil, err
+	} else if errors.Is(err, errors.New("status code is 500")) {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(resBody, &IncidentData); err != nil {
+		return nil, err
+	}
+	fmt.Println(IncidentData)
+	return IncidentData, nil
 }
