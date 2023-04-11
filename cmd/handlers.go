@@ -11,7 +11,6 @@ import (
 	"io/ioutil"
 	"math"
 	"net/http"
-	"reflect"
 	"sort"
 	"strconv"
 )
@@ -213,26 +212,42 @@ func (app *Application) Email() (EmailData []models.EmailData, err error) {
 }
 
 // need a bit mask
-func (app *Application) Billing() (BillingData *models.BillingData, err error) {
+func (app *Application) Billing() (BillingData models.BillingData, err error) {
 	nums, err := ioutil.ReadFile("./data/billing.data")
 	if err != nil {
-		return nil, err
+		return BillingData, err
 	}
-	fmt.Printf("%v, %v", nums, reflect.TypeOf(nums))
+	//fmt.Printf("%v, %v", nums, reflect.TypeOf(nums))
 	var Bits []int
 	for i := 5; i >= 0; i-- {
 		byteNumber, _ := strconv.Atoi(string(nums[i]))
 		Bits = append(Bits, byteNumber)
 	}
-	fmt.Println(Bits)
 	var sum uint8
 	for index, num := range Bits {
 		if num == 1 {
 			sum += uint8(math.Pow(float64(2), float64(index)))
 		}
 	}
-	fmt.Println(sum)
+
+	BillingData = models.BillingData{
+
+		CreateCustomer: BillCheck(nums[0]),
+		Purchase:       BillCheck(nums[1]),
+		Payout:         BillCheck(nums[2]),
+		Recurring:      BillCheck(nums[3]),
+		FraudControl:   BillCheck(nums[4]),
+		CheckoutPage:   BillCheck(nums[5]),
+	}
+
 	return BillingData, nil
+}
+func BillCheck(bit uint8) bool {
+	if int(bit) == 49 {
+		return true
+	} else {
+		return false
+	}
 }
 
 func (app *Application) Support() (SupportData []models.SupportData, err error) {
@@ -330,7 +345,6 @@ func (app *Application) GetResultMMS() (MMSDataResult [][]models.MMSData, err er
 	return MMSDataResult, nil
 }
 
-// think about sort and add data to result map
 func (app *Application) GetResultEmail() (EmailResult map[string][][]models.EmailData, err error) {
 	EmailData, err := app.Email()
 	if err != nil {
@@ -350,14 +364,14 @@ func (app *Application) GetResultEmail() (EmailResult map[string][][]models.Emai
 		if err != nil {
 			return nil, err
 		}
-		EmailResult[countryName] = append(EmailResult[countryName], EmailDataHigh[i])
+		EmailResult[countryName] = append(EmailResult[countryName], EmailDataHigh)
 	}
-	for i := 0; i < 3; i++ {
+	for i := 3; i > 0; i-- {
 		countryName, err := CountryName(EmailDataLow[i].Country)
 		if err != nil {
 			return nil, err
 		}
-		EmailResult[countryName] = append(EmailResult[countryName], EmailDataLow[i])
+		EmailResult[countryName] = append(EmailResult[countryName], EmailDataLow)
 	}
 
 	return EmailResult, nil
@@ -372,6 +386,31 @@ func (app *Application) GetResultIncident() (IncidentResult []models.IncidentDat
 		return IncidentData[i].Status < IncidentData[j].Status
 	})
 	return IncidentResult, nil
+}
+
+func (app *Application) GetResultSupport() (data []int, err error) {
+	SupportData, err := app.Support()
+	if err != nil {
+		return nil, err
+	}
+
+	var sum int
+	for _, ticket := range SupportData {
+		sum += ticket.ActiveTickets
+	}
+
+	if sum < 9 {
+		data = append(data, 1)
+	} else if sum < 16 {
+		data = append(data, 2)
+	} else {
+		data = append(data, 3)
+	}
+
+	averageTime := 60 / 18
+	data = append(data, sum*averageTime)
+
+	return data, nil
 }
 
 func (app *Application) GetResultData() (Results models.ResultSetT) {
@@ -391,7 +430,17 @@ func (app *Application) GetResultData() (Results models.ResultSetT) {
 	if err != nil {
 		app.errorLog.Fatalln(err)
 	}
-	Email, err := app.GetResultEmail()
+	//Email, err := app.GetResultEmail()
+	//if err != nil {
+	//	app.errorLog.Fatalln(err)
+	//}
+
+	Support, err := app.GetResultSupport()
+	if err != nil {
+		app.errorLog.Fatalln(err)
+	}
+
+	Billing, err := app.Billing()
 	if err != nil {
 		app.errorLog.Fatalln(err)
 	}
@@ -401,8 +450,21 @@ func (app *Application) GetResultData() (Results models.ResultSetT) {
 			MMS:       MMS,
 			VoiceCall: VoiceCall,
 			Incident:  Incident,
-			Email:     Email,
+			//Email:     Email,
+			Billing: Billing,
+			Support: Support,
 		}
 	}
 	return Results
+}
+
+func (app *Application) GetResults(w http.ResponseWriter, r *http.Request) {
+	Results := app.GetResultData()
+
+	err := json.NewEncoder(w).Encode(Results)
+	if err != nil {
+		app.errorLog.Fatalln(err)
+	}
+	w.Header().Set("Content-Type", "application/json")
+
 }
