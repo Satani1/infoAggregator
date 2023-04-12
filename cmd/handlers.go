@@ -59,7 +59,7 @@ func (app *Application) SendGetRequest(requestURL string) (resBody []byte, err e
 }
 
 func (app *Application) SMS() (SMSData []models.SMSData, err error) {
-	data, err := pkg.ReadCSV("./data/sms.data", 4)
+	data, err := pkg.ReadCSV("./simulator/sms.data", 4)
 	if err != nil {
 		return nil, err
 	}
@@ -95,14 +95,12 @@ func (app *Application) MMS() (MMSData []models.MMSData, err error) {
 	} else if errors.Is(err, errors.New("status code is 500")) {
 		return MMSData, err
 	}
-	fmt.Printf("%s\n", resBody)
 
 	var MMSDataSlice []models.MMSData
 
 	if err := json.Unmarshal(resBody, &MMSDataSlice); err != nil {
 		return MMSData, err
 	}
-	fmt.Println(MMSDataSlice)
 
 	for _, element := range MMSDataSlice {
 		if !CheckCountry(element.Country) {
@@ -114,12 +112,11 @@ func (app *Application) MMS() (MMSData []models.MMSData, err error) {
 		MMSData = append(MMSData, element)
 
 	}
-	fmt.Println(MMSData)
 	return MMSData, nil
 }
 
 func (app *Application) VoiceCall() (VoiceCallData []models.VoiceCallData, err error) {
-	data, err := pkg.ReadCSV("./data/voice.data", 8)
+	data, err := pkg.ReadCSV("./simulator/voice.data", 8)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +167,7 @@ func (app *Application) VoiceCall() (VoiceCallData []models.VoiceCallData, err e
 }
 
 func (app *Application) Email() (EmailData []models.EmailData, err error) {
-	data, err := pkg.ReadCSV("./data/email.data", 3)
+	data, err := pkg.ReadCSV("./simulator/email.data", 3)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +204,6 @@ func (app *Application) Email() (EmailData []models.EmailData, err error) {
 
 		EmailData = append(EmailData, *email)
 	}
-	fmt.Println(EmailData)
 	return EmailData, nil
 }
 
@@ -261,7 +257,6 @@ func (app *Application) Support() (SupportData []models.SupportData, err error) 
 	if err := json.Unmarshal(resBody, &SupportData); err != nil {
 		return SupportData, err
 	}
-	fmt.Println(SupportData)
 	return SupportData, nil
 }
 
@@ -277,7 +272,6 @@ func (app *Application) Incident() (IncidentData []models.IncidentData, err erro
 	if err := json.Unmarshal(resBody, &IncidentData); err != nil {
 		return nil, err
 	}
-	fmt.Println(IncidentData)
 	return IncidentData, nil
 }
 
@@ -308,7 +302,7 @@ func (app *Application) GetResultSMS() (SMSDataResult [][]models.SMSData, err er
 	})
 
 	SMSDataResult = [][]models.SMSData{SMSDataByCountry, SMSDataByProvider}
-
+	fmt.Println(SMSDataResult)
 	return SMSDataResult, nil
 
 }
@@ -455,10 +449,12 @@ func (app *Application) GetResults(w http.ResponseWriter, r *http.Request) {
 		Error:  "",
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	err := json.NewEncoder(w).Encode(res)
-	if err != nil {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "Application/json")
+
+	if err := json.NewEncoder(w).Encode(res); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+	w.WriteHeader(http.StatusOK)
 
 }
