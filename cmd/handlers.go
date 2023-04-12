@@ -211,7 +211,6 @@ func (app *Application) Email() (EmailData []models.EmailData, err error) {
 	return EmailData, nil
 }
 
-// need a bit mask
 func (app *Application) Billing() (BillingData models.BillingData, err error) {
 	nums, err := ioutil.ReadFile("./data/billing.data")
 	if err != nil {
@@ -345,7 +344,7 @@ func (app *Application) GetResultMMS() (MMSDataResult [][]models.MMSData, err er
 	return MMSDataResult, nil
 }
 
-func (app *Application) GetResultEmail() (EmailResult map[string][][]models.EmailData, err error) {
+func (app *Application) GetResultEmail() (map[string][][]models.EmailData, error) {
 	EmailData, err := app.Email()
 	if err != nil {
 		return nil, err
@@ -356,23 +355,9 @@ func (app *Application) GetResultEmail() (EmailResult map[string][][]models.Emai
 		return EmailDataHigh[i].DeliveryTime < EmailDataHigh[j].DeliveryTime
 	})
 	sort.SliceStable(EmailDataLow, func(i, j int) bool {
-		return EmailDataLow[i].DeliveryTime < EmailDataLow[j].DeliveryTime
+		return EmailDataLow[i].DeliveryTime > EmailDataLow[j].DeliveryTime
 	})
-
-	for i := 0; i < 3; i++ {
-		countryName, err := CountryName(EmailDataHigh[i].Country)
-		if err != nil {
-			return nil, err
-		}
-		EmailResult[countryName] = append(EmailResult[countryName], EmailDataHigh)
-	}
-	for i := 3; i > 0; i-- {
-		countryName, err := CountryName(EmailDataLow[i].Country)
-		if err != nil {
-			return nil, err
-		}
-		EmailResult[countryName] = append(EmailResult[countryName], EmailDataLow)
-	}
+	EmailResult := make(map[string][][]models.EmailData, 0)
 
 	return EmailResult, nil
 }
@@ -385,7 +370,8 @@ func (app *Application) GetResultIncident() (IncidentResult []models.IncidentDat
 	sort.SliceStable(IncidentData, func(i, j int) bool {
 		return IncidentData[i].Status < IncidentData[j].Status
 	})
-	return IncidentResult, nil
+
+	return IncidentData, nil
 }
 
 func (app *Application) GetResultSupport() (data []int, err error) {
@@ -454,17 +440,25 @@ func (app *Application) GetResultData() (Results models.ResultSetT) {
 			Billing: Billing,
 			Support: Support,
 		}
+	} else {
+		return
 	}
 	return Results
 }
 
 func (app *Application) GetResults(w http.ResponseWriter, r *http.Request) {
 	Results := app.GetResultData()
-
-	err := json.NewEncoder(w).Encode(Results)
-	if err != nil {
-		app.errorLog.Fatalln(err)
+	var res models.ResultT
+	res = models.ResultT{
+		Status: true,
+		Data:   Results,
+		Error:  "",
 	}
+
 	w.Header().Set("Content-Type", "application/json")
+	err := json.NewEncoder(w).Encode(res)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 
 }
