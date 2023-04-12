@@ -41,7 +41,7 @@ func (app *Application) Routes() *mux.Router {
 		fmt.Println(out)
 	})
 
-	rMux.HandleFunc("/a", app.GetResults)
+	rMux.HandleFunc("/api", app.GetResults)
 
 	return rMux
 }
