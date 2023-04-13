@@ -5,7 +5,6 @@ import (
 	"errors"
 	"finalWork/pkg"
 	"finalWork/pkg/models"
-	"fmt"
 	"github.com/pariz/gountries"
 	"io"
 	"io/ioutil"
@@ -120,7 +119,6 @@ func (app *Application) VoiceCall() (VoiceCallData []models.VoiceCallData, err e
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(data)
 	var dataVoice [][]string
 	for _, records := range data {
 		if !CheckCountry(records[0]) {
@@ -162,7 +160,6 @@ func (app *Application) VoiceCall() (VoiceCallData []models.VoiceCallData, err e
 
 		VoiceCallData = append(VoiceCallData, *voice)
 	}
-	fmt.Println(VoiceCallData)
 	return VoiceCallData, nil
 }
 
@@ -171,7 +168,6 @@ func (app *Application) Email() (EmailData []models.EmailData, err error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(data)
 	var dataEmail [][]string
 	providers := []string{"Gmail", "Yahoo", "Hotmail", "MSN", "Orange", "Comcast", "AOL", "Live", "RediffMail", "GMX", "Protonmail",
 		"Yandex", "Mail.ru"}
@@ -207,7 +203,7 @@ func (app *Application) Email() (EmailData []models.EmailData, err error) {
 	return EmailData, nil
 }
 
-func (app *Application) Billing() (BillingData models.BillingData, err error) {
+func (app *Application) Billing() (BillingData *models.BillingData, err error) {
 	nums, err := ioutil.ReadFile("./data/billing.data")
 	if err != nil {
 		return BillingData, err
@@ -225,7 +221,7 @@ func (app *Application) Billing() (BillingData models.BillingData, err error) {
 		}
 	}
 
-	BillingData = models.BillingData{
+	BillingData = &models.BillingData{
 
 		CreateCustomer: BillCheck(nums[0]),
 		Purchase:       BillCheck(nums[1]),
@@ -302,7 +298,6 @@ func (app *Application) GetResultSMS() (SMSDataResult [][]models.SMSData, err er
 	})
 
 	SMSDataResult = [][]models.SMSData{SMSDataByCountry, SMSDataByProvider}
-	fmt.Println(SMSDataResult)
 	return SMSDataResult, nil
 
 }
@@ -338,7 +333,7 @@ func (app *Application) GetResultMMS() (MMSDataResult [][]models.MMSData, err er
 	return MMSDataResult, nil
 }
 
-func (app *Application) GetResultEmail() (map[string][][]models.EmailData, error) {
+func (app *Application) GetResultEmail() (*map[string][][]models.EmailData, error) {
 	EmailData, err := app.Email()
 	if err != nil {
 		return nil, err
@@ -353,7 +348,7 @@ func (app *Application) GetResultEmail() (map[string][][]models.EmailData, error
 	})
 	EmailResult := make(map[string][][]models.EmailData, 0)
 
-	return EmailResult, nil
+	return &EmailResult, nil
 }
 
 func (app *Application) GetResultIncident() (IncidentResult []models.IncidentData, err error) {
@@ -393,60 +388,65 @@ func (app *Application) GetResultSupport() (data []int, err error) {
 	return data, nil
 }
 
-func (app *Application) GetResultData() (Results models.ResultSetT) {
+func (app *Application) GetResultData() (Results *models.ResultSetT, err error) {
 	SMS, err := app.GetResultSMS()
 	if err != nil {
-		app.errorLog.Fatalln(err)
+		return nil, err
 	}
 	MMS, err := app.GetResultMMS()
 	if err != nil {
-		app.errorLog.Fatalln(err)
+		return nil, err
 	}
 	VoiceCall, err := app.VoiceCall()
 	if err != nil {
-		app.errorLog.Fatalln(err)
+		return nil, err
 	}
 	Incident, err := app.GetResultIncident()
 	if err != nil {
-		app.errorLog.Fatalln(err)
+		return nil, err
 	}
-	//Email, err := app.GetResultEmail()
-	//if err != nil {
-	//	app.errorLog.Fatalln(err)
-	//}
+	Email, err := app.GetResultEmail()
+	if err != nil {
+		return nil, err
+	}
 
 	Support, err := app.GetResultSupport()
 	if err != nil {
-		app.errorLog.Fatalln(err)
+		return nil, err
 	}
 
 	Billing, err := app.Billing()
 	if err != nil {
-		app.errorLog.Fatalln(err)
+		return nil, err
 	}
-	if err == nil {
-		Results = models.ResultSetT{
-			SMS:       SMS,
-			MMS:       MMS,
-			VoiceCall: VoiceCall,
-			Incident:  Incident,
-			//Email:     Email,
-			Billing: Billing,
-			Support: Support,
-		}
-	} else {
-		return
+
+	Results = &models.ResultSetT{
+		SMS:       SMS,
+		MMS:       MMS,
+		VoiceCall: VoiceCall,
+		Incident:  Incident,
+		Email:     *Email,
+		Billing:   Billing,
+		Support:   Support,
 	}
-	return Results
+	return Results, nil
 }
 
 func (app *Application) GetResults(w http.ResponseWriter, r *http.Request) {
-	Results := app.GetResultData()
 	var res models.ResultT
-	res = models.ResultT{
-		Status: true,
-		Data:   Results,
-		Error:  "",
+	Results, err := app.GetResultData()
+	if (err != nil) || (Results.Support == nil || len(Results.Email) == 0 || Results.Billing == nil || Results.Incident == nil || Results.MMS == nil || Results.SMS == nil || Results.VoiceCall == nil) {
+		res = models.ResultT{
+			Status: false,
+			Data:   nil,
+			Error:  "Error on collect data",
+		}
+	} else {
+		res = models.ResultT{
+			Status: true,
+			Data:   Results,
+			Error:  "",
+		}
 	}
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")

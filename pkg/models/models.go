@@ -51,9 +51,9 @@ type IncidentData struct {
 }
 
 type ResultT struct {
-	Status bool       `json:"status"`
-	Data   ResultSetT `json:"data"`
-	Error  string     `json:"error"`
+	Status bool        `json:"status"`
+	Data   *ResultSetT `json:"data"`
+	Error  string      `json:"error"`
 }
 
 type ResultSetT struct {
@@ -61,7 +61,7 @@ type ResultSetT struct {
 	MMS       [][]MMSData              `json:"mms"`
 	VoiceCall []VoiceCallData          `json:"voice_call"`
 	Email     map[string][][]EmailData `json:"email"`
-	Billing   BillingData              `json:"billing"`
+	Billing   *BillingData             `json:"billing"`
 	Support   []int                    `json:"support"`
 	Incident  []IncidentData           `json:"incident"`
 }
