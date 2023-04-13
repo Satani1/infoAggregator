@@ -208,7 +208,6 @@ func (app *Application) Billing() (BillingData *models.BillingData, err error) {
 	if err != nil {
 		return BillingData, err
 	}
-	//fmt.Printf("%v, %v", nums, reflect.TypeOf(nums))
 	var Bits []int
 	for i := 5; i >= 0; i-- {
 		byteNumber, _ := strconv.Atoi(string(nums[i]))
@@ -338,15 +337,37 @@ func (app *Application) GetResultEmail() (*map[string][][]models.EmailData, erro
 	if err != nil {
 		return nil, err
 	}
-	EmailDataHigh := EmailData
-	EmailDataLow := EmailData
-	sort.SliceStable(EmailDataHigh, func(i, j int) bool {
-		return EmailDataHigh[i].DeliveryTime < EmailDataHigh[j].DeliveryTime
-	})
-	sort.SliceStable(EmailDataLow, func(i, j int) bool {
-		return EmailDataLow[i].DeliveryTime > EmailDataLow[j].DeliveryTime
+	EmailDataByCountries := EmailData
+
+	sort.SliceStable(EmailDataByCountries, func(i, j int) bool {
+		return EmailDataByCountries[i].Country < EmailDataByCountries[j].Country
 	})
 	EmailResult := make(map[string][][]models.EmailData, 0)
+
+	tempArr := make([]models.EmailData, 0)
+
+	for i := 0; i < len(EmailDataByCountries)-1; i++ {
+		tempCountry, err := CountryName(EmailDataByCountries[i].Country)
+		if err != nil {
+			return nil, err
+		}
+		tempCountry2, err := CountryName(EmailDataByCountries[i+1].Country)
+		if err != nil {
+			return nil, err
+		}
+		if tempCountry == tempCountry2 {
+			tempArr = append(tempArr, EmailDataByCountries[i])
+		} else {
+			sort.SliceStable(tempArr, func(i, j int) bool {
+				return tempArr[i].DeliveryTime < tempArr[j].DeliveryTime
+			})
+			tempArrH := tempArr[0:3]
+			tempArrL := tempArr[len(tempArr)-3 : len(tempArr)]
+			arr := [][]models.EmailData{tempArrH, tempArrL}
+			EmailResult[tempCountry] = arr
+			tempArrH, tempArrL, tempArr = nil, nil, nil
+		}
+	}
 
 	return &EmailResult, nil
 }
@@ -429,13 +450,14 @@ func (app *Application) GetResultData() (Results *models.ResultSetT, err error) 
 		Billing:   Billing,
 		Support:   Support,
 	}
+
 	return Results, nil
 }
 
 func (app *Application) GetResults(w http.ResponseWriter, r *http.Request) {
 	var res models.ResultT
 	Results, err := app.GetResultData()
-	if (err != nil) || (Results.Support == nil || len(Results.Email) == 0 || Results.Billing == nil || Results.Incident == nil || Results.MMS == nil || Results.SMS == nil || Results.VoiceCall == nil) {
+	if (err != nil) || (Results.Support == nil || Results.Billing == nil || Results.Incident == nil || Results.MMS == nil || Results.SMS == nil || Results.VoiceCall == nil) {
 		res = models.ResultT{
 			Status: false,
 			Data:   nil,

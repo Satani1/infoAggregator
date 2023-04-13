@@ -41,7 +41,7 @@ func main() {
 		ErrorLog: App.errorLog,
 		Handler:  App.Routes(),
 	}
-	//fmt.Println(App.GetResultEmail())
+
 	App.infoLog.Printf("Launching server on %s", App.Addr)
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
