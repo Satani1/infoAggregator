@@ -3,49 +3,27 @@ package main
 import (
 	"context"
 	"errors"
-	"flag"
-	"log"
+	"finalWork/internal"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
 )
 
-type Application struct {
-	errorLog *log.Logger
-	infoLog  *log.Logger
-	Addr     string
-}
-
-func NewApplication() *Application {
-	//addr config from terminal
-	addr := flag.String("addr", "localhost:8080", "Server Address")
-	flag.Parse()
-	//logs
-	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
-	errorLog := log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
-	App := &Application{
-		errorLog: errorLog,
-		infoLog:  infoLog,
-		Addr:     *addr,
-	}
-	return App
-}
-
 func main() {
 
-	App := NewApplication()
+	App := internal.NewApplication()
 
 	srv := http.Server{
 		Addr:     App.Addr,
-		ErrorLog: App.errorLog,
+		ErrorLog: App.ErrorLog,
 		Handler:  App.Routes(),
 	}
 
-	App.infoLog.Printf("Launching server on %s", App.Addr)
+	App.InfoLog.Printf("Launching server on %s", App.Addr)
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			App.errorLog.Fatalln(err)
+			App.ErrorLog.Fatalln(err)
 		}
 	}()
 
@@ -57,8 +35,8 @@ func main() {
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		App.errorLog.Fatalln(err)
+		App.ErrorLog.Fatalln(err)
 	}
-	App.infoLog.Fatalln("Im shutdown...")
+	App.InfoLog.Fatalln("Im shutdown...")
 
 }
