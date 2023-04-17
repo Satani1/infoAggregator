@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"github.com/gorilla/mux"
@@ -15,6 +15,8 @@ func (app *Application) Routes() *mux.Router {
 		}
 		w.WriteHeader(http.StatusOK)
 	})
+
+	rMux.HandleFunc("/api", app.GetResults)
 
 	return rMux
 }
