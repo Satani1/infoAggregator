@@ -7,4 +7,4 @@ Basically on port 8383, but u can change it. Its create three requests:
 2) /mms
 3) /accendent
 
-### Service will be collecting and display on the ./simulator/status_page.html
+### Service will be collecting and display on the `./simulator/status_page.html`
